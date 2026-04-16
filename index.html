@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Anime Physique Protocol</title>
+  <meta name="description" content="Daily anime physique training tracker" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Physique" />
+  <link rel="manifest" href="manifest.json" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: #0a0a0f;
+      color: #e2e8f0;
+      font-family: Georgia, serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    .bg-radial {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(139,92,246,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(239,68,68,0.06) 0%, transparent 60%);
+    }
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.015) 40px, rgba(255,255,255,0.015) 41px);
+    }
+
+    #app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 20px 16px 100px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 24px; }
+    .header-sub { font-size: 11px; letter-spacing: 6px; color: #6b7280; text-transform: uppercase; margin-bottom: 6px; }
+    .header-day {
+      font-size: 28px; font-weight: 900; letter-spacing: 2px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .header-type { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    /* Rank card */
+    .rank-card {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px; padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 16;
+      animation: slideIn 0.4s ease;
+    }
+    .rank-badge {
+      width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; animation: rankPulse 3s ease infinite;
+    }
+    .rank-info { flex: 1; }
+    .rank-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .rank-name { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+    .rank-pct { font-size: 22px; font-weight: 900; }
+    .rank-bar-bg { margin-top: 8px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+    .rank-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+    .rank-meta { margin-top: 6px; font-size: 12px; color: #6b7280; }
+
+    /* Nav */
+    .nav { display: flex; gap: 8px; margin-bottom: 20px; }
+    .nav-btn {
+      flex: 1; padding: 10px 0; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      transition: all 0.2s; border: none; font-family: Georgia, serif;
+    }
+    .nav-btn.active { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.53); }
+    .nav-btn.inactive { background: rgba(255,255,255,0.03); color: #6b7280; border: 1px solid rgba(255,255,255,0.08); }
+
+    /* Category */
+    .cat-label {
+      font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+      margin-bottom: 10px; padding-left: 10px; border-left-width: 3px; border-left-style: solid;
+    }
+    .cat-group { margin-bottom: 20px; }
+
+    /* Check item */
+    .check-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: 12px; cursor: pointer;
+      transition: all 0.2s; margin-bottom: 8px; border-width: 1px; border-style: solid;
+      -webkit-user-select: none; user-select: none;
+    }
+    .check-item:active { transform: scale(0.97); }
+    .check-box {
+      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; transition: all 0.2s; border-width: 2px; border-style: solid;
+    }
+    .check-icon { font-size: 18px; }
+    .check-label { font-size: 14px; flex: 1; transition: all 0.2s; }
+    .check-label.done { color: #9ca3af; text-decoration: line-through; }
+
+    /* Complete banner */
+    .complete-banner {
+      text-align: center; padding: 24px 16px;
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 16px; margin-top: 8px; animation: slideIn 0.4s ease;
+    }
+    .complete-dragon { font-size: 36px; margin-bottom: 8px; }
+    .complete-title { font-size: 18px; font-weight: 700; color: #ef4444; letter-spacing: 2px; }
+    .complete-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    /* History */
+    .history-title { font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: #6b7280; margin-bottom: 16px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 24px; }
+    .cal-header { text-align: center; font-size: 10px; color: #4b5563; padding-bottom: 4px; }
+    .cal-day {
+      aspect-ratio: 1; border-radius: 8px; border-width: 1px; border-style: solid;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    }
+    .cal-date { font-size: 9px; color: #6b7280; }
+    .cal-pct { font-size: 11px; font-weight: 700; }
+    .cal-empty { font-size: 10px; color: #374151; }
+    .cal-sword { font-size: 7px; color: rgba(239,68,68,0.53); }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stat-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 14px 10px; text-align: center;
+    }
+    .stat-value { font-size: 22px; font-weight: 900; color: #ef4444; }
+    .stat-label { font-size: 10px; color: #6b7280; margin-top: 2px; }
+    .stat-sub { font-size: 9px; color: #374151; }
+
+    /* Particle */
+    .particle { position: fixed; top: 50%; left: 50%; z-index: 100; pointer-events: none; }
+    .particle span {
+      position: absolute; font-size: 20px;
+      animation: particleFade 1s ease-out forwards;
+    }
+
+    @keyframes particleFade {
+      0% { opacity: 1; transform: var(--tr) translateY(-20px) scale(1); }
+      100% { opacity: 0; transform: var(--tr) translateY(-80px) scale(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rankPulse {
+      0%, 100% { box-shadow: 0 0 15px var(--rc); }
+      50% { box-shadow: 0 0 35px var(--rc), 0 0 60px var(--rc); }
+    }
+
+    .view { animation: slideIn 0.3s ease; }
+  </style>
+</head>
+<body>
+  <div class="bg-radial"></div>
+  <div class="bg-grid"></div>
+  <div id="app"></div>
+
+  <script>
+    const TRAINING_DAYS = [1, 3, 5];
+
+    const TRAINING_CHECKLIST = [
+      { id: "tea", cat: "morning", label: "Water + Green/Sencha Tea", icon: "🍵" },
+      { id: "meal2", cat: "morning", label: "Meal 2 — Yogurt Bowl", icon: "🥣" },
+      { id: "pullups", cat: "training", label: "Pull-ups", icon: "💪" },
+      { id: "rows", cat: "training", label: "Supinated Inverted Rows", icon: "🔱" },
+      { id: "pike", cat: "training", label: "Pike Push-ups", icon: "⚡" },
+      { id: "decline", cat: "training", label: "Decline Deficit Push-ups", icon: "🔥" },
+      { id: "dips", cat: "training", label: "Dips", icon: "⚔️" },
+      { id: "pistol", cat: "training", label: "Pistol Squats", icon: "🦵" },
+      { id: "hinge", cat: "training", label: "Hip Hinges", icon: "🌀" },
+      { id: "dragon", cat: "training", label: "Dragon Flag", icon: "🐉" },
+      { id: "cardio", cat: "training", label: "Cardio — 45 mins", icon: "🏃" },
+      { id: "stretch", cat: "recovery", label: "Post-Training Stretch (15 mins)", icon: "🧘" },
+      { id: "meal1", cat: "nutrition", label: "Meal 1 — Beef + Eggs + Kimchi + Spinach", icon: "🥩" },
+      { id: "creatine", cat: "nutrition", label: "Creatine 10g", icon: "⚗️" },
+      { id: "liver", cat: "nutrition", label: "Beef Liver Pills", icon: "💊" },
+      { id: "lmnt", cat: "nutrition", label: "LMNT Electrolytes", icon: "⚡" },
+      { id: "meal3", cat: "nutrition", label: "Meal 3 — Ground Beef + Sweet Potato + Avocado", icon: "🥑" },
+      { id: "water", cat: "nutrition", label: "Water Throughout Day", icon: "💧" },
+    ];
+
+    const REST_CHECKLIST = [
+      { id: "tea", cat: "morning", label: "Water + Green/Sencha Tea", icon: "🍵" },
+      { id: "meal2", cat: "morning", label: "Meal 2 — Yogurt Bowl", icon: "🥣" },
+      { id: "reststretch", cat: "recovery", label: "Rest Day Stretch — 20-30 mins", icon: "🧘" },
+      { id: "hipcirc", cat: "recovery", label: "Hip Circles + Spinal Rotations", icon: "🌀" },
+      { id: "pigeon", cat: "recovery", label: "Pigeon Pose + Cat-Cow", icon: "🐱" },
+      { id: "meal1", cat: "nutrition", label: "Meal 1 — Beef + Eggs + Kimchi + Spinach", icon: "🥩" },
+      { id: "creatine", cat: "nutrition", label: "Creatine 10g", icon: "⚗️" },
+      { id: "liver", cat: "nutrition", label: "Beef Liver Pills", icon: "💊" },
+      { id: "meal3", cat: "nutrition", label: "Meal 3 — Ground Beef + Sweet Potato + Avocado", icon: "🥑" },
+      { id: "water", cat: "nutrition", label: "Water Throughout Day", icon: "💧" },
+    ];
+
+    const CAT_LABELS = { morning: "Morning Ritual", training: "Training", recovery: "Recovery", nutrition: "Nutrition" };
+    const CAT_COLORS = { morning: "#f59e0b", training: "#ef4444", recovery: "#06b6d4", nutrition: "#22c55e" };
+    const DAY_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const DAY_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+    const RANKS = [
+      { min: 0,  rank: "Civilian", color: "#6b7280", kanji: "民" },
+      { min: 20, rank: "Genin",    color: "#22c55e", kanji: "下" },
+      { min: 40, rank: "Chunin",   color: "#06b6d4", kanji: "中" },
+      { min: 60, rank: "Jonin",    color: "#8b5cf6", kanji: "上" },
+      { min: 80, rank: "ANBU",     color: "#f59e0b", kanji: "暗" },
+      { min: 95, rank: "Kage",     color: "#ef4444", kanji: "影" },
+    ];
+
+    function getRank(pct) {
+      let r = RANKS[0];
+      for (const x of RANKS) if (pct >= x.min) r = x;
+      return r;
+    }
+
+    function todayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    }
+
+    function isTraining(date) { return TRAINING_DAYS.includes(date.getDay()); }
+
+    // State
+    const key = todayKey();
+    const today = new Date();
+    const training = isTraining(today);
+    const checklist = training ? TRAINING_CHECKLIST : REST_CHECKLIST;
+
+    let checked = {};
+    let history = {};
+    let view = "today";
+
+    try { checked = JSON.parse(localStorage.getItem("checked_" + key) || "{}"); } catch {}
+    try { history = JSON.parse(localStorage.getItem("streak_history") || "{}"); } catch {}
+
+    function save() {
+      try {
+        localStorage.setItem("checked_" + key, JSON.stringify(checked));
+        const total = checklist.length;
+        const done = Object.values(checked).filter(Boolean).length;
+        const pct = Math.round((done / total) * 100);
+        history[key] = pct;
+        localStorage.setItem("streak_history", JSON.stringify(history));
+      } catch {}
+    }
+
+    function getLast14() {
+      const days = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        days.push({ date: d, key: k, pct: history[k] ?? null, training: isTraining(d) });
+      }
+      return days;
+    }
+
+    function getStreak(days) {
+      let s = 0;
+      for (let i = 0; i < days.length; i++) {
+        const d = days[days.length - 1 - i];
+        if (d.pct === 100) s++;
+        else if (d.pct !== null) break;
+        else if (i === 0) break;
+      }
+      return s;
+    }
+
+    function spawnParticle() {
+      const el = document.createElement("div");
+      el.className = "particle";
+      const symbols = ["✦","★","✧","⚡"];
+      symbols.forEach((s, i) => {
+        const span = document.createElement("span");
+        span.textContent = s;
+        span.style.cssText = `--tr: rotate(${i*90}deg); animation-delay: ${i*0.1}s;`;
+        el.appendChild(span);
+      });
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1100);
+    }
+
+    function render() {
+      const total = checklist.length;
+      const done = Object.values(checked).filter(Boolean).length;
+      const pct = Math.round((done / total) * 100);
+      const rank = getRank(pct);
+      const last14 = getLast14();
+      const streak = getStreak(last14);
+
+      // Group checklist
+      const grouped = {};
+      for (const item of checklist) {
+        if (!grouped[item.cat]) grouped[item.cat] = [];
+        grouped[item.cat].push(item);
+      }
+
+      let html = `
+        <div class="header">
+          <div class="header-sub">Anime Physique Protocol</div>
+          <div class="header-day">${DAY_FULL[today.getDay()].toUpperCase()}</div>
+          <div class="header-type">${training ? "⚔️ TRAINING DAY" : "🌙 REST & RECOVERY DAY"}</div>
+        </div>
+
+        <div class="rank-card" style="border: 1px solid ${rank.color}44;">
+          <div class="rank-badge" style="background:${rank.color}22; border: 2px solid ${rank.color}; color:${rank.color}; --rc:${rank.color};">
+            ${rank.kanji}
+          </div>
+          <div class="rank-info">
+            <div class="rank-row">
+              <span class="rank-name" style="color:${rank.color}">${rank.rank}</span>
+              <span class="rank-pct" style="color:${rank.color}">${pct}%</span>
+            </div>
+            <div class="rank-bar-bg">
+              <div class="rank-bar-fill" style="width:${pct}%; background: linear-gradient(90deg, ${rank.color}88, ${rank.color}); box-shadow: 0 0 8px ${rank.color};"></div>
+            </div>
+            <div class="rank-meta">${done}/${total} tasks complete${streak > 0 ? ` • 🔥 ${streak} day streak` : ""}</div>
+          </div>
+        </div>
+
+        <div class="nav">
+          <button class="nav-btn ${view === "today" ? "active" : "inactive"}" onclick="setView('today')">⚡ Today</button>
+          <button class="nav-btn ${view === "history" ? "active" : "inactive"}" onclick="setView('history')">📜 History</button>
+        </div>
+      `;
+
+      if (view === "today") {
+        html += `<div class="view">`;
+        for (const [cat, items] of Object.entries(grouped)) {
+          const c = CAT_COLORS[cat];
+          html += `<div class="cat-group">
+            <div class="cat-label" style="color:${c}; border-color:${c};">${CAT_LABELS[cat]}</div>`;
+          for (const item of items) {
+            const isDone = !!checked[item.id];
+            html += `
+              <div class="check-item" onclick="toggle('${item.id}')"
+                style="background:${isDone ? c+"12" : "rgba(255,255,255,0.03)"}; border-color:${isDone ? c+"44" : "rgba(255,255,255,0.06)"};">
+                <div class="check-box" style="background:${isDone ? c : "transparent"}; border-color:${isDone ? c : "rgba(255,255,255,0.2)"}; color:#0a0a0f;">
+                  ${isDone ? "✓" : ""}
+                </div>
+                <span class="check-icon">${item.icon}</span>
+                <span class="check-label ${isDone ? "done" : ""}">${item.label}</span>
+              </div>`;
+          }
+          html += `</div>`;
+        }
+        if (pct === 100) {
+          html += `<div class="complete-banner">
+            <div class="complete-dragon">🐉</div>
+            <div class="complete-title">MISSION COMPLETE</div>
+            <div class="complete-sub">The path of the anime physique continues.</div>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+
+      if (view === "history") {
+        html += `<div class="view">
+          <div class="history-title">Last 14 Days</div>
+          <div class="cal-grid">`;
+
+        for (const d of DAY_SHORT) {
+          html += `<div class="cal-header">${d}</div>`;
+        }
+
+        const offset = last14[0].date.getDay();
+        for (let i = 0; i < offset; i++) html += `<div></div>`;
+
+        for (const day of last14) {
+          const isToday = day.key === key;
+          const r = day.pct !== null ? getRank(day.pct) : null;
+          const bg = day.pct === null ? "rgba(255,255,255,0.02)" : day.pct === 100 ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)";
+          html += `<div class="cal-day" style="border-color:${isToday ? "#ef4444" : "rgba(255,255,255,0.06)"}; background:${bg}; border-width:${isToday ? "2px" : "1px"};">
+            <span class="cal-date">${day.date.getDate()}</span>
+            ${day.pct !== null ? `<span class="cal-pct" style="color:${r.color}">${day.pct}%</span>` : `<span class="cal-empty">—</span>`}
+            ${day.training ? `<span class="cal-sword">⚔</span>` : ""}
+          </div>`;
+        }
+
+        html += `</div>`;
+
+        const tracked = last14.filter(d => d.pct !== null);
+        const avg = tracked.length ? Math.round(tracked.reduce((a, d) => a + d.pct, 0) / tracked.length) : 0;
+        const perfect = last14.filter(d => d.pct === 100).length;
+
+        html += `<div class="stats-grid">
+          <div class="stat-card"><div class="stat-value">${streak}🔥</div><div class="stat-label">Streak</div><div class="stat-sub">days</div></div>
+          <div class="stat-card"><div class="stat-value">${perfect}</div><div class="stat-label">Perfect Days</div><div class="stat-sub">this fortnight</div></div>
+          <div class="stat-card"><div class="stat-value">${avg}%</div><div class="stat-label">Avg Score</div><div class="stat-sub">completion</div></div>
+        </div></div>`;
+      }
+
+      document.getElementById("app").innerHTML = html;
+    }
+
+    function toggle(id) {
+      const wasUnchecked = !checked[id];
+      checked[id] = !checked[id];
+      save();
+      if (wasUnchecked) spawnParticle();
+      render();
+    }
+
+    function setView(v) {
+      view = v;
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
